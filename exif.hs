@@ -4,31 +4,20 @@ import ExifGPS.Get
 import ExifGPS.Types
 
 import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString as BS
 import Data.Binary.Get
-import Data.Word
-import Data.Int
-
 import Data.Maybe
-import Numeric
-
 
 files :: [FilePath]
 files = ["test1.jpg","test2.jpg"]
 
-testBs :: IO B.ByteString
-testBs = B.readFile "test1.jpg"
+main :: IO ()
+main = mapM_ show_exif_data files
 
-test :: IO ()
-test = mapM_ show_exif_data files
+test1 :: IO [ExifData]
+test1 = readExifData "test1.jpg"
 
-test2 :: IO [Data]
-test2 = do
- bs <-  testBs
- let ds = runGet getExifData bs
- return ds
-
-main = test
+test2 :: IO [ExifData]
+test2 = readExifData "test2.jpg"
 
 show_exif_data :: FilePath -> IO ()
 show_exif_data file = do

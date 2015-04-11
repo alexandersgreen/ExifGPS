@@ -97,8 +97,7 @@ tag_name x = case (attributeInfo x) of
  Just ai -> tagName ai
  Nothing -> "Unknown Tag " ++ show x
 
-data ExifData = 
-            Byte Word16 [Word8]
+data Data = Byte Word16 [Word8]
           | Ascii Word16 String
           | Short Word16 [Word16]
           | Long Word16 [Word32]
@@ -107,7 +106,7 @@ data ExifData =
           | Slong Word16 [Int32]
           | Srational Word16 [(Int32,Int32)] 
 
-instance Show ExifData where
+instance Show Data where
  show (Byte tag bs) = show bs
  show (Ascii tag s) = s
  show (Short tag ss) = show ss
@@ -121,7 +120,7 @@ instance Show ExifData where
   l' = length $ show bs
   n = if l' < 7 then l' else 7
 
-emptyData :: Type -> Word16 -> ExifData
+emptyData :: Type -> Word16 -> Data
 emptyData BYTE tag = Byte tag []
 emptyData ASCII tag = Ascii tag ""
 emptyData SHORT tag = Short tag []
@@ -165,4 +164,3 @@ attributeInfo 4 = Just $ AI "Longitude" "GPSLongitude" 4 RATIONAL 3
 attributeInfo 5 = Just $ AI "Altitude reference" "GPSAltitudeRef" 5 BYTE 1
 attributeInfo 6 = Just $ AI "Altitude" "GPSAltitude" 6 RATIONAL 1
 attributeInfo _ = Nothing
-

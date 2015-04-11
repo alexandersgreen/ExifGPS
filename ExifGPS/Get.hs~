@@ -7,7 +7,6 @@ import Data.Binary.Get
 import Data.Word
 import Data.Char
 import Data.Bits
-import Data.Maybe
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as BS
@@ -138,7 +137,7 @@ getIFDbo bo = do
  ost <- getWord32bo bo
  return $ IFD {byte_order = bo, tag = tag, typ = typ, cnt = fromIntegral cnt, ost = fromIntegral ost, contains_data = cnt * num_bytes typ <= 4}
 
-getDataOfType :: Word16 -> ByteOrder -> Int -> Type -> Get ExifData
+getDataOfType :: Word16 -> ByteOrder -> Int -> Type -> Get Data
 getDataOfType tag _ n ASCII = do
  s <- getString n
  return $ Ascii tag s
@@ -148,12 +147,12 @@ getDataOfType tag bo n UNDEFINED = do
 getDataOfType tag bo n t = do
   getData (emptyData t tag) n
  where
-  getData :: ExifData -> Int -> Get ExifData
+  getData :: Data -> Int -> Get Data
   getData ds 0 = return (reverseData ds)
   getData ds n = do
    ds' <- getOne ds 
    getData ds' (n-1)
-  getOne :: ExifData -> Get ExifData
+  getOne :: Data -> Get Data
   getOne (Byte tag bs) = do
    b <- getWord8
    return (Byte tag (b:bs))
@@ -174,7 +173,7 @@ getDataOfType tag bo n t = do
    n <- getWord32bo bo
    d <- getWord32bo bo
    return (Srational tag (((fromIntegral n),(fromIntegral d)):ss))
-  reverseData :: ExifData -> ExifData
+  reverseData :: Data -> Data
   reverseData (Byte tag bs) = Byte tag $ reverse bs
   reverseData (Ascii _ _) = error "reverseData called on ASCII"
   reverseData (Short tag ss) = Short tag $ reverse ss
@@ -213,7 +212,7 @@ getIfdInfo ifd = do
 gpsTag :: String
 gpsTag = "GPS data:"
 
-getIfdData :: IFD -> Get ExifData
+getIfdData :: IFD -> Get Data
 getIfdData ifd = do
    case (contains_data ifd) of
             True -> do
@@ -238,19 +237,10 @@ getExifIFDs = do
  skip offset'
  count <- getWord16bo bo
  replicateM (fromIntegral count) (getIFDbo bo) 
-
-getExtraData :: ExifData -> Get (Maybe [ExifData])
-getExtraData _ = return Nothing
  
-getExifData :: Get [ExifData]
+getExifData :: Get [Data]
 getExifData = do
  getToApp1
  ifds <- lookAhead $ getExifIFDs
  datas <- mapM (lookAhead . getIfdData) ifds
- extras <- mapM (lookAhead . getExtraData) datas
- return (datas ++ concat (catMaybes extras))
-
-readExifData :: FilePath -> IO [ExifData]
-readExifData file = do
- bs <- B.readFile file
- return $ runGet getExifData bs
+ return datas
