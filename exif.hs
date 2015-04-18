@@ -3,10 +3,6 @@ module Main where
 import ExifGPS.Get
 import ExifGPS.Types
 
-import qualified Data.ByteString.Lazy as B
-import Data.Binary.Get
-import Data.Maybe
-
 main :: IO ()
 main = do
  s1 <- test1
