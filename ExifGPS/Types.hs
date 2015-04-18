@@ -105,21 +105,8 @@ data ExifData =
           | Rational Word16 [(Word32,Word32)]
           | Undefined Word16 BS.ByteString
           | Slong Word16 [Int32]
-          | Srational Word16 [(Int32,Int32)] 
-
-instance Show ExifData where
- show (Byte tag bs) = show bs
- show (Ascii tag s) = s
- show (Short tag ss) = show ss
- show (Long tag ls) = show ls
- show (Rational tag rs) = show $ map (\(n,d) -> fromIntegral n / fromIntegral d) rs
- show (Slong tag ss) = show ss
- show (Srational tag ss) = show $ map (\(n,d) -> fromIntegral n / fromIntegral d) ss
- show (Undefined tag bs) = show (take n $ show bs) ++ "... (" ++ show l ++ " bytes in total)"
-  where
-  l = BS.length bs
-  l' = length $ show bs
-  n = if l' < 7 then l' else 7
+          | Srational Word16 [(Int32,Int32)]
+  deriving Show
 
 emptyData :: Type -> Word16 -> ExifData
 emptyData BYTE tag = Byte tag []
@@ -166,3 +153,61 @@ attributeInfo 5 = Just $ AI "Altitude reference" "GPSAltitudeRef" 5 BYTE 1
 attributeInfo 6 = Just $ AI "Altitude" "GPSAltitude" 6 RATIONAL 1
 attributeInfo _ = Nothing
 
+class FromExifData a where
+ fromExifData :: ExifData -> a
+
+instance FromExifData ExifData
+ where fromExifData = id
+
+data ShowExifData = 
+            ShowByte Word16 [Word8]
+          | ShowAscii Word16 String
+          | ShowShort Word16 [Word16]
+          | ShowLong Word16 [Word32]
+          | ShowRational Word16 [Double]
+          | ShowUndefined Word16 String
+          | ShowSlong Word16 [Int32]
+          | ShowSrational Word16 [Double]
+
+showTag :: Word16 -> String
+showTag = tag_name
+
+instance Show ShowExifData where
+ show (ShowByte tag bs) = showTag tag ++ ": " ++ show bs
+ show (ShowAscii tag s) = showTag tag ++ ": " ++ s
+ show (ShowShort tag s) = showTag tag ++ ": " ++ show s
+ show (ShowLong tag l) = showTag tag ++ ": " ++ show l
+ show (ShowRational tag r) = showTag tag ++ ": " ++ show r
+ show (ShowSlong tag s) = showTag tag ++ ": " ++ show s
+ show (ShowSrational tag r) = showTag tag ++ ": " ++ show r
+ show (ShowUndefined tag s) = showTag tag ++ ": " ++ s
+
+instance FromExifData ShowExifData where
+ fromExifData (Byte tag bs) = ShowByte tag bs
+ fromExifData (Ascii tag s) = ShowAscii tag s
+ fromExifData (Short tag ss) = ShowShort tag ss
+ fromExifData (Long tag ls) = ShowLong tag ls
+ fromExifData (Rational tag rs) = ShowRational tag $ map (\(n,d) -> fromIntegral n / fromIntegral d) rs
+ fromExifData (Slong tag ss) = ShowSlong tag ss
+ fromExifData (Srational tag ss) = ShowSrational tag $ map (\(n,d) -> fromIntegral n / fromIntegral d) ss
+ fromExifData (Undefined tag bs) = ShowUndefined tag $ show (take n $ show bs) ++ "... (" ++ show l ++ " bytes in total)"
+  where
+   l = BS.length bs
+   l' = length $ show bs
+   n = if l' < 20 then l' else 20
+
+class FromList l where
+ fromList :: [a] -> l a
+
+instance FromList [] where
+ fromList = id
+
+data Exif a = Exif [a]
+
+instance FromList Exif where
+ fromList = Exif
+
+instance (Show a) => Show (Exif a) where
+ show (Exif as) = unlines $ map show as
+
+type ShowExif = Exif ShowExifData
