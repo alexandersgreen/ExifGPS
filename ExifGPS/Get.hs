@@ -64,6 +64,43 @@ getToApp1 = do
  check_marker padding
  return length
 
+-- then read the APP1
+-- finally check the file ends with the EOI
+read_from_jpeg :: Get B.ByteString
+read_from_jpeg = do
+ length <- getToApp1
+ app1 <- getLazyByteString $ fromIntegral (length - 8)
+ --n <- remaining
+ --let n' = if n < 2 then 0 else n - 2
+ --skip $ fromIntegral n'
+ --check_marker eoi
+ return app1
+
+read_from_app1 :: Get (ByteOrder,[IFD])
+read_from_app1 = do
+ -- r <- remaining
+ bo <- getByteOrder
+ check_marker_bo bo (42,"42") 
+ offset <- getWord32bo bo
+ let offset' = fromIntegral $ offset - 8
+ skip offset'
+ count <- getWord16bo bo
+ ifds <- replicateM (fromIntegral count) (getIFDbo bo)
+ -- r' <- remaining
+ --next_ifd_offset <- getWord32bo bo
+ return (bo,ifds)
+
+read_from_app1' :: ByteOrder -> Word32 -> Get [IFD]
+read_from_app1' bo n = do
+ -- r <- remaining
+ skip (fromIntegral n)
+ count <- getWord16bo bo
+ ifds <- replicateM (fromIntegral count) (getIFDbo bo)
+ -- r' <- remaining
+ -- next_ifd_offset <- getWord32bo bo
+ return ifds
+
+
 getString :: Int -> Get String
 getString n = do
   s <- getString' "" n 
@@ -144,6 +181,35 @@ getDataOfType tag bo n t = do
   reverseData (Undefined _ _) = error "reverseData called on UNDEFINED"
   reverseData (Slong tag ss) = Slong tag $ reverse ss
   reverseData (Srational tag ss) = Srational tag $ reverse ss
+
+getIfdInfo :: IFD -> Get (String, Maybe (String,Word32))
+getIfdInfo ifd = do
+   info <- case (contains_data ifd) of
+            True -> do
+                     let the_data = ost ifd
+                     return $ case typ ifd of
+                               BYTE -> Byte (tag ifd) $ take (fromIntegral (cnt ifd)) [fromIntegral $ the_data,fromIntegral $ shiftR the_data 4,fromIntegral $ shiftR the_data 8,fromIntegral $ shiftR the_data 12]
+                               ASCII -> Ascii (tag ifd) $ take (fromIntegral (cnt ifd)) [chr $ fromIntegral $ the_data,chr $ fromIntegral $ shiftR the_data 4,chr $ fromIntegral $ shiftR the_data 8,chr $ fromIntegral $ shiftR the_data 12]
+                               SHORT -> Short (tag ifd) $ take (fromIntegral (cnt ifd)) [fromIntegral $ the_data,fromIntegral $ shiftR the_data 8]
+                               LONG -> Long (tag ifd) [the_data]
+                               UNDEFINED -> Undefined (tag ifd) $ BS.pack $ take (fromIntegral (cnt ifd)) [fromIntegral $ the_data,fromIntegral $ shiftR the_data 4,fromIntegral $ shiftR the_data 8,fromIntegral $ shiftR the_data 12]
+                               t -> error "The impossible happened"
+            False -> do
+                      skip $ fromIntegral $ ost ifd
+                      getDataOfType (tag ifd) (byte_order ifd) (fromIntegral $ cnt ifd) (typ ifd)
+   let s' = case info of
+            (Rational 2 [(an,ad),(bn,bd),(cn,cd)]) -> show $ (fromIntegral an / fromIntegral ad) + (fromIntegral bn / fromIntegral (bd * 60)) + (fromIntegral cn / fromIntegral (cd * 60 * 60)) 
+            (Rational 4 [(an,ad),(bn,bd),(cn,cd)]) -> show $ (fromIntegral an / fromIntegral ad) + (fromIntegral bn / fromIntegral (bd * 60)) + (fromIntegral cn / fromIntegral (cd * 60 * 60))
+            info -> ""
+   let s = tag_name (tag ifd) ++ " (" ++ show (cnt ifd) ++ "x" ++ show (typ ifd)++ "): " ++ show info ++ " " ++ s'
+   let i = case info of
+            (Long 34665 [l]) -> Just ("Exif data:", l)
+            (Long 34853 [l]) -> Just (gpsTag, l)
+            _ -> Nothing
+   return (s,i)
+
+gpsTag :: String
+gpsTag = "GPS data:"
 
 getIfdData :: IFD -> Get ExifData
 getIfdData ifd = do
