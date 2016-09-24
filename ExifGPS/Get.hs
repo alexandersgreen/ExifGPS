@@ -29,7 +29,7 @@ getByteOrder = do
    bs <- getByteString 8
    error $ "getByteOrder: " ++ show w ++ "\n" ++ show bs
 
--- Check that the give jpeg marker is the next word
+-- | Check that the given jpeg marker is the next word
 check_marker_bo :: ByteOrder -> MarkerCode -> Get ()
 check_marker_bo bo (word,name) = do
  word' <- getWord16bo bo
@@ -40,7 +40,7 @@ check_marker_bo bo (word,name) = do
 check_marker :: MarkerCode -> Get ()
 check_marker = check_marker_bo BigEndian
 
--- Check that the given ASCII string is the next data
+-- | Check that the given ASCII string is the next data
 check_string :: String -> Get ()
 check_string s = do
  b <- check_string' s
@@ -54,7 +54,7 @@ check_string s = do
     True -> check_string' s
     False -> return False
 
--- check the file starts with the SOI, 
+-- | Check the file starts with the SOI
 getToApp1 :: Get Word16
 getToApp1 = do
  check_marker soi

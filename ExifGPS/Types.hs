@@ -4,30 +4,30 @@ import Data.Word
 import Data.Int
 import qualified Data.ByteString as BS
 
--- The word is the marker code, and the string is it's name
+-- | The word is the marker code, and the string is it's name
 type MarkerCode = (Word16,String)
 
--- Start of Image
+-- | Start of Image
 soi :: MarkerCode
 soi = (0xFFD8,"SOI")
 
--- End of Image
+-- | End of Image
 eoi :: MarkerCode
 eoi = (0xFFD9,"EOI")
 
--- Padding
+-- | Padding
 padding :: MarkerCode
 padding = (0x0000,"Padding") 
 
--- Big Endian
+-- | Big Endian
 big_endian :: MarkerCode
 big_endian = (0x4D4D,"Big Endian")
 
--- Little Endian
+-- | Little Endian
 little_endian :: MarkerCode
 little_endian = (0x4949,"Little Endian")
 
--- APP, 0 -> F
+-- | APP, 0 -> F
 app :: Int -> MarkerCode
 app n = (0xFFE0 + fromIntegral n,"APP" ++ show n)
 
