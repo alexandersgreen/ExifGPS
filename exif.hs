@@ -3,6 +3,7 @@ module Main where
 import ExifGPS.Get
 import ExifGPS.Types
 
+-- | An example usage of the ExifGPS modules to extract the Exif data from the two sample images in the repository
 main :: IO ()
 main = do
  s1 <- test1
