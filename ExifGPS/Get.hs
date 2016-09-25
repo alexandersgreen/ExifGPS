@@ -11,14 +11,17 @@ import Data.Bits
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as BS
 
+-- | Given a byte order, get a Word16
 getWord16bo :: ByteOrder -> Get Word16
 getWord16bo LittleEndian = getWord16le
 getWord16bo BigEndian = getWord16be
 
+-- | Given a byte order, get a Word32
 getWord32bo :: ByteOrder -> Get Word32
 getWord32bo LittleEndian = getWord32le
 getWord32bo BigEndian = getWord32be
 
+-- | Get the ByteOrder as specified in the Tiff\Exif standards
 getByteOrder :: Get ByteOrder
 getByteOrder = do
  w <- getWord16be
